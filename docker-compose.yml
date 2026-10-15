@@ -1,0 +1,11 @@
+services:
+  study:
+    build: .
+    volumes:
+      - ./results:/work/results
+    command: python experiments/run_all.py
+  full:
+    build: .
+    volumes:
+      - ./results:/work/results
+    command: python experiments/run_all.py --full
