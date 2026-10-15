@@ -11,7 +11,12 @@
 [![Live data](https://img.shields.io/badge/live_data-BTC_%2B_FX_verified-f59e0b)](results/market.json)
 [![Tests](https://img.shields.io/badge/tests-4%2F4_passing-brightgreen)](tests/)
 
-[▶ Live interactive website](docs/preview.html) · [🌱 Beginner guide](#-beginner-guide--read-this-and-you-are-a-professional) · [🎮 Simulator + Quiz](docs/preview.html#quiz) · [📊 Results](#verified-headline-results) · [🐳 One-command run](#reproduce)
+[▶ Live interactive website](https://m0-ar.github.io/lstm-memory-carousel-phd-2026/preview.html) · [🌱 Beginner guide](#-beginner-guide--read-this-and-you-are-a-professional) · [🎮 Simulator + Quiz](https://m0-ar.github.io/lstm-memory-carousel-phd-2026/preview.html#quiz) · [📊 Results](#verified-headline-results) · [🐳 One-command run](#reproduce)
+
+> 🌐 **Prefer browsing?** The whole study is a website — pick any link, all three resolve to the same page:
+> [`/` ](https://m0-ar.github.io/lstm-memory-carousel-phd-2026/) ·
+> [`/preview.html`](https://m0-ar.github.io/lstm-memory-carousel-phd-2026/preview.html) ·
+> [`/docs/preview.html`](https://m0-ar.github.io/lstm-memory-carousel-phd-2026/docs/preview.html)
 
 </div>
 
@@ -347,16 +352,41 @@ after your own `docker compose up` will prove it — that is the point.*
 
 The interactive site is [`docs/preview.html`](docs/preview.html) (single file, zero dependencies:
 hero, TL;DR, both GIFs, all charts, beginner guide, live simulator, measured tables, market proof,
-user stories, 10-question quiz with levels, run instructions).
+user stories, 10-question quiz with levels, run instructions). Root mirrors (`preview.html`,
+`index.html`, `.nojekyll`) make the page resolve under **either** Pages source setting:
 
-**Publish it free in 4 clicks:** push to GitHub → **Settings → Pages** → Source **“Deploy from a branch”**
-→ branch `main`, folder **`/docs`** → Save. Live in ~1 minute at
-`https://<you>.github.io/<repo>/preview.html`. Images live under `docs/assets/`; `docs/.nojekyll`
-guarantees they deploy untouched.
+| Link (click it) | Works when source = `/docs` | Works when source = `/` (root) |
+|---|---|---|
+| [`/`](https://m0-ar.github.io/lstm-memory-carousel-phd-2026/) | ✅ (`docs/index` fallback) | ✅ (root `index.html` → `preview.html`) |
+| [`/preview.html`](https://m0-ar.github.io/lstm-memory-carousel-phd-2026/preview.html) | ✅ (`docs/preview.html`) | ✅ (root `preview.html`) |
+| [`/docs/preview.html`](https://m0-ar.github.io/lstm-memory-carousel-phd-2026/docs/preview.html) | ❌ (no nesting under `/docs` source) | ✅ (repo path mirror) |
+
+**Recommended setting (non-fatal if ignored):** **Settings → Pages** → Source **“Deploy from a branch”**
+→ branch `main`, folder **`/docs`** → Save. Live in ~1 minute. Asset paths are relative
+(`assets/…`), `.nojekyll` sits in both `/` and `/docs`, so nothing breaks on project Pages
+(served under `/<repo>/`).
+
+<details>
+<summary>Diagnose a 404 in 10 seconds (three probes)</summary>
+
+```bash
+BASE="https://m0-ar.github.io/lstm-memory-carousel-phd-2026"
+for p in "" "preview.html" "docs/preview.html"; do
+  printf "%s -> " "/$p"
+  curl -s -o /dev/null -w "%{http_code}\n" "$BASE/$p"
+done
+```
+
+`200/200/404` = source `/docs` ✅ · `200/404/200` = source `/` root · `404/404/404` = Pages off / still building.
+A green “Deployed” only proves *something* built — the probes prove *your path* exists.
+</details>
 
 ## Project structure
 
 ```
+├── index.html              # root entry → preview.html (+ mirror links; Pages source "/")
+├── preview.html            # root mirror of docs/preview.html (identical; relative assets work both ways)
+├── .nojekyll               # root static-serving marker (also in docs/)
 ├── assets/                 # README visuals (PNG charts, GIF demos, page screenshot)
 ├── docs/
 │   ├── preview.html        # the interactive website (quiz + simulator inside)

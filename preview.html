@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Does a Network Remember One Letter Across 1,000 Fillers? — Interactive Study</title>
+<meta name="description" content="From-scratch reproduction of the RNN to LSTM to GRU memory story. Measured numbers, animated demos, simulator and quiz. Zero to pro.">
+<style>
+:root{--navy:#1b2a4a;--teal:#14b8a6;--coral:#f43f5e;--gold:#f59e0b;--ink:#0f172a;--mut:#64748b;--bg:#f8fafc;--card:#ffffff;--line:#e2e8f0}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+.hero{background:linear-gradient(135deg,#0f172a 0%,#1b2a4a 60%,#0d5c56 100%);color:#fff;padding:56px 20px 48px;text-align:center}
+.hero h1{margin:0 0 12px;font-size:clamp(26px,4.5vw,44px);line-height:1.2}
+.hero p.sub{max-width:820px;margin:0 auto 20px;font-size:clamp(15px,2vw,19px);color:#cbd5e1}
+.badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:18px 0}
+.badges img{height:24px}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.btn{display:inline-block;padding:12px 22px;border-radius:10px;font-weight:700;text-decoration:none}
+.btn.teal{background:var(--teal);color:#04211d}.btn.ghost{border:2px solid #fff;color:#fff}
+.wrap{max-width:1020px;margin:0 auto;padding:0 20px}
+nav.toc{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);z-index:5}
+nav.toc .wrap{display:flex;gap:14px;overflow-x:auto;padding:10px 20px;font-size:14px}
+nav.toc a{color:var(--navy);text-decoration:none;white-space:nowrap;font-weight:600}
+section.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px;margin:26px 0;box-shadow:0 2px 10px rgba(15,23,42,.05)}
+h2{color:var(--navy);margin-top:0;font-size:26px}h3{color:var(--navy)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:12px 0}
+th,td{border:1px solid var(--line);padding:9px 10px;text-align:left}
+th{background:#f1f5f9}tr.ok td{background:#ecfdf5}tr.bad td{background:#fef2f2}
+img.fig{width:100%;border-radius:10px;border:1px solid var(--line)}
+.cap{color:var(--mut);font-size:13.5px;margin:6px 0 18px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+.kpi{background:#f1f5f9;border-radius:10px;padding:14px;text-align:center}
+.kpi b{display:block;font-size:24px;color:var(--navy)}.kpi span{font-size:13px;color:var(--mut)}
+.sim{background:#0f172a;color:#e2e8f0;border-radius:12px;padding:20px}
+.sim label{font-size:13px;color:#94a3b8}.sim select,.sim input{width:100%;margin:6px 0 12px;padding:9px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#fff}
+.bar{height:22px;border-radius:6px;background:#1e293b;margin:8px 0;position:relative;overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:6px;transition:width .25s}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:700px){.row{grid-template-columns:1fr}}
+.quizq{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:16px;margin:12px 0}
+.quizq button{display:block;width:100%;text-align:left;margin:7px 0;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:15px}
+.quizq button:hover{border-color:var(--teal)}
+.quizq button.right{background:#ecfdf5;border-color:var(--teal);font-weight:700}
+.quizq button.wrong{background:#fef2f2;border-color:var(--coral)}
+.expl{font-size:14px;color:var(--mut);margin-top:8px;display:none}
+.score{font-size:20px;font-weight:800;color:var(--navy)}
+.steps li{margin:10px 0}.steps code{background:#f1f5f9;padding:2px 6px;border-radius:6px}
+pre{background:#0f172a;color:#e2e8f0;padding:16px;border-radius:10px;overflow-x:auto;font-size:13.5px}
+footer{text-align:center;color:var(--mut);padding:30px;font-size:13.5px}
+.pill{display:inline-block;background:#ecfdf5;color:#065f46;font-weight:700;font-size:12.5px;padding:3px 10px;border-radius:999px;margin:2px}
+</style>
+</head>
+<body>
+<div class="hero">
+<h1>How Does a Network Remember One Letter<br>Across 1,000 Fillers?</h1>
+<p class="sub">A neural network reads <b>B … (noise) … (noise) … ?</b> and must answer <b>“B”</b> — without looking back, carrying only 32 numbers. The plain network fails. Three small ideas fix it forever. This repo rebuilds each idea <b>from an empty file</b>, measures everything, and checks it on <b>live market data</b>.</p>
+<div class="badges">
+<img src="https://img.shields.io/badge/experiments-100%25%20reproducible-14b8a6" alt="reproducible">
+<img src="https://img.shields.io/badge/architectures-plain%20%E2%86%92%20CEC%20%E2%86%92%20LSTM%20%E2%86%92%20GRU-1b2a4a" alt="architectures">
+<img src="https://img.shields.io/badge/python-3.10%2B%20%7C%20numpy-3776AB" alt="python">
+<img src="https://img.shields.io/badge/docker-one%20command-2496ED" alt="docker">
+<img src="https://img.shields.io/badge/live%20data-BTC%20%2B%20FX%20verified-f59e0b" alt="live data">
+</div>
+<div class="cta">
+<a class="btn teal" href="#simulator">▶ Try the live simulator</a>
+<a class="btn ghost" href="#quiz">Test yourself: 10-question quiz</a>
+</div>
+</div>
+<nav class="toc"><div class="wrap">
+<a href="#tldr">TL;DR</a><a href="#demos">Demos</a><a href="#beginner">🌱 Beginner guide</a><a href="#simulator">Simulator</a><a href="#results">Results</a><a href="#market">Live market proof</a><a href="#stories">Who is this for</a><a href="#quiz">Quiz</a><a href="#run">Run it</a><a href="#pages">Website</a>
+</div></nav>
+<div class="wrap">
+
+<section class="card" id="tldr">
+<h2>TL;DR — the 30-second version for busy people</h2>
+<div class="kpis">
+<div class="kpi"><b>0.523×</b><span>signal kept per step back (plain net) → ~0 left after 50 steps</span></div>
+<div class="kpi"><b>1.00×</b><span>signal kept with the plus-sign cell (never multiply the memory)</span></div>
+<div class="kpi"><b>1,832 → 6,536</b><span>parameters: plain → 2-gate → 3-gate cell, counted exactly</span></div>
+<div class="kpi"><b>live BTC n=366</b><span>same ideas checked on real market data, not just toys</span></div>
+</div>
+<p><b>The whole story in three sentences.</b> (1) A plain recurrent network multiplies its memory every step, so the lesson from 50 steps ago shrinks to <b>8×10⁻¹⁵ of itself</b> — training hears nothing. (2) Adding instead of multiplying (the “constant error carousel”) keeps the lesson at full size, and a gate that <b>starts nearly shut</b> stops noise from burying it. (3) A second gate that <b>starts nearly open</b> lets the network forget on purpose — and one gate doing both jobs (the GRU idea) can hold a 300-step lesson across <b>3,000 steps</b>.</p>
+<p><span class="pill">Plain: 5 fillers ✅ · 50 fillers ❌ (guessing)</span> <span class="pill">Gated cells: 50–200 fillers ✅</span> <span class="pill">GRU mixer: 10× length generalisation ✅</span></p>
+</section>
+
+<section class="card" id="demos">
+<h2>Watch it happen (animated, generated from real measured numbers)</h2>
+<h3>1 · The vanishing signal</h3>
+<img class="fig" src="assets/signal_demo.gif" alt="Animation: plain network signal decays to zero while the plus-sign cell holds steady">
+<p class="cap">Each frame steps one symbol further back. Plain: ×0.523 per step (measured). Cell: ×1.00 by construction. After 10 steps the plain signal is under 1%.</p>
+<h3>2 · The gate that starts nearly shut</h3>
+<img class="fig" src="assets/gate_demo.gif" alt="Animation: shut input gate blocks fillers while the letter writes a clean mark">
+<p class="cap">Top: gate opening per symbol (≈2% for fillers). Bottom: cell content. The letter writes ~17× more than a filler, so its mark survives while noise stays flat. A half-open gate piles up instead.</p>
+<h3>3 · Measured factors and scores</h3>
+<img class="fig" src="assets/gradient_factors.png" alt="Bar chart of measured per-step learning-signal factors">
+<p class="cap">1× init decays (0.523), 4× explodes (1.196 → ×7,760 over 50 steps), 2× looks “perfect” at 0.978 but still decays to 0.34 — scalar init can’t hold 1.0.</p>
+<img class="fig" src="assets/copy_results.png" alt="Bar chart of copy-task accuracy by architecture">
+<p class="cap">Mean accuracy on 1,000 fresh rows. Dashed line = solved (0.99), dotted = blind guess (0.125). CEC at 0.94–0.99 is one threshold-point short — the pile-up the input gate then fixes.</p>
+</section>
+
+<section class="card" id="beginner">
+<h2>🌱 Beginner guide — read this and you are a professional</h2>
+<p>After this section you will know more than most interview candidates. Let’s work this out in a step-by-step way to be sure we have the right answer.</p>
+<ol class="steps">
+<li><b>Step 1 — The game.</b> The network sees one row: a letter (<code>A</code>–<code>H</code>), then <code>N</code> meaningless filler symbols, then one question: <i>which letter was first?</i> It reads left to right, one symbol per step, and between steps it may carry only <b>32 numbers</b> (its memory). Before the first symbol, all 32 are zero.</li>
+<li><b>Step 2 — One step, slowly.</b> Letter <code>B</code> arrives. <code>B</code> picks its row from a table (16 rows × 32 numbers). The old 32 numbers each get multiplied by table numbers and added up (that’s a matrix multiply). Add <code>B</code>’s row. Squeeze everything between −1 and 1 (that’s <code>tanh</code>). Done — that’s the new memory. Same two tables every step: this looping is why it’s called <b>recurrent</b>.</li>
+<li><b>Step 3 — Learning means blame.</b> After the answer, a message (the <b>learning signal</b>) travels backward, telling each step’s tables how to change. Going back through a step multiplies the signal by that step’s factor. Measured here: <b>≈0.52 per step</b>. After 10 steps 0.52¹⁰ ≈ 0.0014 — under 1% survives. The letter is 50 steps back, so its signal is ≈10⁻¹⁴. The tables hear nothing. <i>That</i> is the vanishing gradient — not a metaphor, a measured number (see chart above).</li>
+<li><b>Step 4 — The fix, part 1: add, don’t multiply.</b> Give the network a second memory (the <b>cell</b>). New values are <i>added</i> to it: <code>cell = cell + new</code>. Backward through a plus sign, the signal keeps its size exactly (<b>factor 1.00</b>) — the “constant error carousel”. Suddenly 50-step lessons arrive intact.</li>
+<li><b>Step 5 — The fix, part 2: doors.</b> A <b>gate</b> is a number between 0 and 1 that multiplies what passes: 0 = shut, 1 = open. The <b>input gate starts nearly shut</b> (bias −4 → 1.8% open), so fillers barely write. The <b>forget gate starts nearly open</b> (bias +3 → 95%), so old content stays until the network chooses to wipe it. One gate doing both (keep 90% old + write 10% new) can never pile up — that’s the <b>GRU</b> idea, and it generalises 10× past its training length.</li>
+<li><b>Step 6 — Why bigger tables don’t save you.</b> Starting tables 4× larger flips decay into explosion (×1.196/step → ×7,760 over 50 steps — one update throws the tables across the room). 2× looks perfect (0.978) but training moves the tables, so the factor drifts. Only <i>structure</i> (the plus sign) holds 1.0. Clipping (scaling oversized signals down) cures explosions, never shrinkage.</li>
+<li><b>Step 7 — Prove it on reality.</b> The same five networks are tested on live Bitcoin data: the first day’s market “mood” must be recalled after N noisy days. Gated networks win; and the raw market turns out <i>easier</i> than random fillers (real noise has patterns to cheat with) — so honest benchmarks always keep the random-filler control next to the real-data test. That discipline is built into this repo.</li>
+</ol>
+<p><b>Interview-ready one-liners:</b> “Vanishing gradient = per-step Jacobian factor below 1, compounding exponentially.” · “LSTM’s carousel is a plus sign, so error flows unchanged.” · “Gate biases are initial conditions, not trivia: input-shut, forget-open.” · “GRU’s convex mix bounds the state, which is why it extrapolates in length.”</p>
+</section>
+
+<section class="card" id="simulator">
+<h2>Interactive simulator — feel the memory (driven by our measured factors)</h2>
+<div class="sim">
+<div class="row">
+<div><label>First letter</label><select id="sLetter"><option>A</option><option selected>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option></select></div>
+<div><label>Fillers after it: <span id="sFillV">50</span></label><input id="sFill" type="range" min="5" max="200" value="50"></div>
+</div>
+<div class="row">
+<div><label>Architecture</label><select id="sArch"><option value="plain">Plain RNN (factor 0.523)</option><option value="cec">Plus-sign cell (factor 1.00)</option><option value="gated">Gated cell, shut input (blocks noise)</option></select></div>
+<div><label>&nbsp;</label><div style="font-size:13px;color:#94a3b8">Illustration uses the factors measured in this repo (0.523 / 1.00). Outcomes mirror the real runs.</div></div>
+</div>
+<p style="margin:10px 0 2px">Signal from the letter that survives to answer time: <b id="sSig">–</b></p>
+<div class="bar"><i id="sSigBar" style="background:#f43f5e"></i></div>
+<p style="margin:10px 0 2px">Letter’s mark vs noise pile at answer time: <b id="sMark">–</b></p>
+<div class="bar"><i id="sMarkBar" style="background:#14b8a6"></i></div>
+<p id="sVerdict" style="font-weight:700"></p>
+</div>
+<script>
+(function(){
+var L=document.getElementById('sLetter'),F=document.getElementById('sFill'),FV=document.getElementById('sFillV'),
+A=document.getElementById('sArch'),S=document.getElementById('sSig'),SB=document.getElementById('sSigBar'),
+M=document.getElementById('sMark'),MB=document.getElementById('sMarkBar'),V=document.getElementById('sVerdict');
+function upd(){
+var n=+F.value;FV.textContent=n;
+var sig,mark,ok,msg;
+if(A.value==='plain'){sig=Math.pow(0.523,n);var pct=sig*100;
+S.textContent=(sig<1e-12?'≈0 (all gone)':(pct<0.01?sig.toExponential(1):pct.toFixed(2)+'%'));
+SB.style.width=Math.min(100,Math.max(0.5,pct))+'%';SB.style.background='#f43f5e';
+mark='buried: blind guess ≈1/8';MB.style.width='4%';MB.style.background='#f43f5e';
+ok=n<=5;msg=ok?'✔ At 5 fillers even the plain net learns (try 50!).':'✘ Signal ≈0 — the tables never hear about '+L.value+'. Measured fill-50 accuracy: 0.11 (guessing).';}
+else if(A.value==='cec'){sig=1.0;S.textContent='100% (plus sign never shrinks it)';SB.style.width='100%';SB.style.background='#14b8a6';
+mark='letter present but noise piled up ('+n+' fillers added too)';MB.style.width=Math.min(100,40+n/4)+'%';MB.style.background='#f59e0b';
+ok=true;msg='✔ Signal arrives intact — but every filler wrote as well. Measured fill-50: 0.94–0.99 (one point short of solved). The input gate fixes this next.';}
+else{sig=1.0;S.textContent='100% (carousel) and noise blocked (gate ≈2% open)';SB.style.width='100%';SB.style.background='#14b8a6';
+mark='clean mark: letter ≈17× stronger than any filler';MB.style.width='96%';MB.style.background='#14b8a6';
+ok=true;msg='✔ Answer: '+L.value+' — with confidence. Measured: LSTM2 fill-50 2/2 @1.00, GRU fill-50 2/2 @1.00.';}
+V.textContent=msg;V.style.color=ok?'#14b8a6':'#f43f5e';}
+L.onchange=upd;F.oninput=upd;A.onchange=upd;upd();})();
+</script>
+</section>
+
+<section class="card" id="results">
+<h2>Measured results (every number re-runnable)</h2>
+<h3>Learning-signal factor per step back</h3>
+<table><tr><th>Setup</th><th>Median factor</th><th>Over 50 steps</th><th>Meaning</th></tr>
+<tr class="bad"><td>Plain, 1× init</td><td><b>0.523</b></td><td>8.3×10⁻¹⁵</td><td>vanishes — letter unheard</td></tr>
+<tr class="bad"><td>Plain, 2× init</td><td><b>0.978</b></td><td>0.34</td><td>looks fine, still decays + drifts</td></tr>
+<tr class="bad"><td>Plain, 4× init</td><td><b>1.196</b></td><td>×7,760</td><td>explodes — one step wrecks tables</td></tr>
+<tr class="ok"><td>Plus-sign cell</td><td><b>1.00</b></td><td>1.00</td><td>by construction — the fix</td></tr></table>
+<h3>Copy task: share of runs solved (solved = ≥99% on 1,000 fresh rows)</h3>
+<table><tr><th>Model</th><th>Fill-5</th><th>Fill-30</th><th>Fill-50</th><th>Fill-200</th></tr>
+<tr class="ok"><td>Plain</td><td>2/2 @1.00</td><td>0/2 @0.12</td><td>0/2 @0.11</td><td>—</td></tr>
+<tr><td>CEC (no gates)</td><td>—</td><td>—</td><td>0/2 @0.99/0.94</td><td>—</td></tr>
+<tr class="ok"><td>LSTM 2-gate, input shut</td><td>—</td><td>—</td><td>2/2 @1.00</td><td>1/2</td></tr>
+<tr class="bad"><td>LSTM 3-gate, forget 0.5</td><td>—</td><td>—</td><td>0/2 @0.14</td><td>—</td></tr>
+<tr><td>LSTM 3-gate, forget open (+3)</td><td>—</td><td>—</td><td>1/2</td><td>—</td></tr>
+<tr class="ok"><td>GRU keep-mixer</td><td>1.00</td><td>—</td><td>2/2 @1.00</td><td>—</td></tr></table>
+<p class="cap">Fast-budget runs (2 seeds × 300–600 rounds). Direction matches the video’s 5-seed × 2,000-round table; full-budget configs ship in <code>--full</code> mode.</p>
+<h3>Structure check (exact)</h3>
+<table><tr><th>Architecture</th><th>Parameters (H=32)</th><th>Status</th></tr>
+<tr><td>Plain</td><td>1,832</td><td>✔ exact</td></tr>
+<tr><td>LSTM 2-gate (1997)</td><td>4,968</td><td>✔ exact</td></tr>
+<tr><td>LSTM 3-gate (2000)</td><td>6,536</td><td>✔ exact</td></tr>
+<tr><td>GRU mixer</td><td>4,968</td><td>✔ exact</td></tr></table>
+</section>
+
+<section class="card" id="market">
+<h2>Live-market proof (real money data, not just toys)</h2>
+<img class="fig" src="assets/market.png" alt="Regime-copy accuracy on live BTC and forecast error comparison">
+<p>Live pull at study time: <b>BTC/USD, 366 daily bars, last $82,259.02</b> (CoinGecko, no key; reproducible offline fallback embedded). Regime-copy asks: <i>what was day-0’s market mood after N noisy days?</i></p>
+<table><tr><th>Fillers</th><th>Plain</th><th>LSTM3 open</th><th>GRU</th></tr>
+<tr class="ok"><td>10</td><td>1.00</td><td>1.00</td><td>1.00</td></tr>
+<tr class="ok"><td>30</td><td>1.00</td><td>1.00</td><td>1.00</td></tr>
+<tr><td>50</td><td><b>1.00</b></td><td>0.879</td><td><b>1.00</b></td></tr></table>
+<p class="cap">Surprise: the plain net aces real-data fill-50 while guessing on random fill-50. Real returns have autocorrelation to cheat with — so this repo always pairs market tests with the random-filler control. Next-day forecasting (window 30, 268 train / 68 test, scaling fit on train only): persistence baseline MAE <b>0.0197</b> beats tiny demo nets (0.082–0.085) — an honest negative result, consistent with published BTC benchmarks.</p>
+</section>
+
+<section class="card" id="stories">
+<h2>Who is this for — pick your path</h2>
+<table><tr><th>You are…</th><th>Start here</th><th>You’ll walk away with</th></tr>
+<tr><td>🎓 A student meeting RNNs first time</td><td>Beginner guide → simulator → quiz</td><td>A mental model that survives any exam: multiply = forget, add = remember, gates = doors</td></tr>
+<tr><td>💼 An interview candidate</td><td>One-liners → results tables → quiz level 3</td><td>Answers with numbers: 0.52/step, +3 forget bias, why 2× init fails, GRU boundedness</td></tr>
+<tr><td>📈 A quant / forecaster</td><td>Market section → <code>experiments/run_market.py</code></td><td>A regime-copy harness + persistence-baseline discipline for any price series</td></tr>
+<tr><td>🔬 A researcher / PhD student</td><td>Full README paper → <code>--full</code> configs</td><td>Three publishable leads: GRU keep-bias requirement, market-shortcut caution, MAPE instability</td></tr>
+<tr><td>👩‍🏫 A teacher</td><td>GIFs + simulator + quiz in class</td><td>A 30-minute lesson: demo → predict → reveal → quiz, all offline-capable</td></tr></table>
+</section>
+
+<section class="card" id="quiz">
+<h2>Quiz — from scratch to pro (10 questions, instant feedback)</h2>
+<p id="qprog" style="color:var(--mut)">Question 1 of 10 · Score: 0</p>
+<div class="quizq" id="qbox"></div>
+<div id="qfinal" style="display:none"><p class="score" id="qscore"></p><p id="qlevel"></p><button onclick="location.reload()" style="padding:10px 18px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-weight:700">Restart quiz</button></div>
+<script>
+var Q=[
+{q:"The network must answer the first letter after N fillers, carrying only 32 numbers. What is being tested?",o:["Arithmetic speed","Long-range memory across noise","Image resolution","Typing accuracy"],a:1,e:"Only the first symbol matters; everything between is distraction. Accuracy vs N measures memory, not compute."},
+{q:"One step back keeps ~0.52 of the learning signal. Roughly how much survives 10 steps?",o:["~52%","~5%","Under 1% (0.52¹⁰ ≈ 0.0014)","~0.52"],a:2,e:"Decay compounds: 0.52¹⁰ ≈ 0.0014. After 50 steps ≈ 10⁻¹⁴ — the letter is unheard."},
+{q:"Tables started 4× larger give factor ≈1.20/step. What happens over 50 steps?",o:["Nothing much","Signal ×~7,760 — training explodes","Memory becomes perfect","Fillers disappear"],a:1,e:"Measured ×7,760. One update throws the tables across the room. Clipping contains explosions — but never fixes shrinkage."},
+{q:"2× init measures 0.978 — close to 1.0. Why isn’t that the fix?",o:["It is the fix","Training moves the tables, so the factor drifts off 1.0","It only works on weekends","It needs more fillers"],a:1,e:"A scalar init can’t hold 1.0 under training. Only structure — the plus sign — survives."},
+{q:"The cell rule is: new_cell = old_cell + new_values. What is the backward factor through it?",o:["0.5","0.0","Exactly 1.0","Random"],a:2,e:"Through a plus sign, a 1-unit change in the old cell is a 1-unit change in the new cell. Factor 1.0 — the constant error carousel."},
+{q:"The input gate starts nearly shut (bias −4 → ~2% open). Why?",o:["To save electricity","So fillers leave almost no mark while the letter writes ~17× more","To make training slower","To use fewer parameters"],a:1,e:"The pile-up problem: 1,000 fillers at half strength bury the letter 3,000× deep. Shut the door on noise."},
+{q:"The forget gate must start nearly OPEN (bias +3 → 95%). What goes wrong at 50%?",o:["Nothing","Signal shrinks ~0.64/step — vanishing returns; measured fill-50: 0.14","Accuracy doubles","Training gets faster"],a:1,e:"A half-open forget gate re-introduces per-step multiplication on the carousel. Measured 0/2 solved at 0.14."},
+{q:"The GRU-style mixer writes: cell = 90% old + 10% new. Why can’t it pile up?",o:["It can","A convex mix of values in [−1,1] stays in [−1,1]","Gates are magic","It has more parameters"],a:1,e:"What isn’t kept is written — bounded by construction. 300-step training holds at 3,000 steps (100% vs 15–26%)."},
+{q:"On LIVE Bitcoin data at fill-50, the plain net scored 1.00 but guesses on random fillers. Why?",o:["Bitcoin is easy","Real returns have autocorrelation patterns the net can cheat with — keep the random-filler control","The test was broken","Plain nets are better"],a:1,e:"Honest benchmarking pairs market tests with i.i.d.-filler controls. Real noise is not structureless."},
+{q:"Tiny demo forecasters lost to the ‘predict yesterday’s price’ baseline (MAE 0.0197 vs 0.082+). The lesson?",o:["LSTMs are useless","Always include a persistence baseline; beating daily BTC needs large tuned models","Delete the baseline","Use MAPE only"],a:1,e:"Published BTC benchmarks agree: persistence is brutally competitive daily. Report MAE/RMSE; MAPE explodes on normalised scales."}];
+var qi=0,sc=0,box=document.getElementById('qbox'),prog=document.getElementById('qprog');
+function render(){
+if(qi>=Q.length){box.style.display='none';prog.style.display='none';
+var f=document.getElementById('qfinal');f.style.display='block';
+document.getElementById('qscore').textContent='Final score: '+sc+' / '+Q.length;
+var lv=sc<=3?'🌱 Beginner — redo the guide above, then retry!':sc<=6?'🌿 Intermediate — solid! Review the two gate biases.':sc<=8?'🌳 Advanced — interview-ready.':'🏆 Pro — you know more than most candidates.';
+document.getElementById('qlevel').textContent=lv;return;}
+var q=Q[qi];prog.textContent='Question '+(qi+1)+' of '+Q.length+' · Score: '+sc;
+var h='<b>Q'+(qi+1)+'. '+q.q+'</b>';for(var i=0;i<q.o.length;i++){h+='<button data-i="'+i+'">'+q.o[i]+'</button>';}
+h+='<div class="expl" id="ex"></div>';box.innerHTML=h;
+var btns=box.querySelectorAll('button');
+btns.forEach(function(b){b.onclick=function(){
+var right=+b.getAttribute('data-i')===q.a;
+btns.forEach(function(x){x.disabled=true;if(+x.getAttribute('data-i')===q.a)x.classList.add('right');});
+if(right){sc++;}else{b.classList.add('wrong');}
+var ex=document.getElementById('ex');ex.style.display='block';
+ex.innerHTML=(right?'✅ Correct. ':'❌ Not quite. ')+q.e+'<br><br><button id="nx" style="width:auto;padding:8px 20px;font-weight:700">Next →</button>';
+prog.textContent='Question '+(qi+1)+' of '+Q.length+' · Score: '+sc;
+document.getElementById('nx').onclick=function(){qi++;render();};};});}
+render();
+</script>
+</section>
+
+<section class="card" id="run">
+<h2>Run it yourself (2 minutes, one command)</h2>
+<pre>pip install -r requirements.txt
+python -m pytest tests/ -q            # 4 checks: 1832/4968/6536, BPTT, factors
+python experiments/run_synthetic.py   # copy-task benchmark (minutes on CPU)
+python experiments/run_market.py      # live BTC + FX (offline fallback built in)
+docker compose up                     # everything, results/ mounted to host</pre>
+<p>Outputs: <code>results/synthetic.json</code>, <code>results/market.json</code> (with live-data provenance). Full paper-scale grid: append <code>--full</code> (5 seeds × 2,000 rounds).</p>
+</section>
+
+<section class="card" id="pages">
+<h2>🌐 View as a website (GitHub Pages)</h2>
+<p><b>This page you’re reading IS the website.</b> To publish it for your own fork:</p>
+<ol class="steps">
+<li>Push this repo to GitHub. Go to <b>Settings → Pages</b>.</li>
+<li>Under <b>Build and deployment → Source</b> choose <b>“Deploy from a branch”</b>.</li>
+<li>Select branch <b>main</b> (or <code>master</code>) and folder <b><code>/docs</code></b>, then <b>Save</b>.</li>
+<li>After ~1 minute your site is live at <code>https://&lt;you&gt;.github.io/&lt;repo&gt;/preview.html</code> — share that link; it contains the simulator, quiz, charts and beginner guide.</li>
+</ol>
+<p class="cap">Why <code>/docs</code>? It keeps the site (HTML + quiz + GIFs under <code>docs/assets/</code>) separate from the science code, deploys with zero build step, and works offline after first load (no external libraries).</p>
+</section>
+
+</div>
+<footer>Built from an empty file · measured everywhere · verified on live data · MIT — clone it, run it, prove it wrong.</footer>
+</body>
+</html>
